@@ -92,7 +92,6 @@
     "touch": "^3.1.0",
     "ts-node": "^10.9.1",
     "type-is": "^1.6.18",
-    "typescript": "^5.1.6",
     "undefsafe": "^2.0.5",
     "unpipe": "^1.0.0",
     "utils-merge": "^1.0.1",
@@ -102,8 +101,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ",
-    "build": "tsc"
+    "start": "nodemon",
+    "build": "tsc",
+    "serve": "node dist/app.js"
   },
   "author": "",
   "license": "ISC",
@@ -112,7 +112,8 @@
     "@types/express-session": "^1.17.7",
     "@types/passport": "^1.0.12",
     "@types/passport-local": "^1.0.35",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "typescript": "^5.1.6"
   },
   "keywords": [],
   "description": "",
