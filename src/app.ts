@@ -7,9 +7,11 @@ import protectedRoute from "./auth/routes/protected-routes";
 import publicRoute from "./auth/routes/public-routes";
 import AmazonCognitoIdentity from "amazon-cognito-identity-js";
 import dotenv from "dotenv";
-import * as AWS from "aws-sdk";
+import cors from 'cors';
+
 //=================================
 const app = express();
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 dotenv.config();
