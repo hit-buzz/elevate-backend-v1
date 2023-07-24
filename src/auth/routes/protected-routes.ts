@@ -1,6 +1,8 @@
-import { isAuthenticated } from "../services/auth-service";
+import { Router } from "express";
 import projectsRoutes from "../../components/projects/routes/project-routes";
-import { Express } from "express-serve-static-core";
-export const registerProtectedRoutes = (app: Express) => {
-  app.use("/project", isAuthenticated, projectsRoutes);
-};
+import { verifyToken } from "../services/auth-service";
+const route = Router();
+
+route.use("/project",verifyToken, projectsRoutes);
+
+export default route;

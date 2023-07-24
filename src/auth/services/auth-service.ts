@@ -1,44 +1,63 @@
 import { NextFunction, Request, Response } from "express";
-import { IVerifyOptions } from "passport-local";
-import prisma from "../../config/prisma";
-export const isAuthenticated = (
+import fs from "fs";
+import jwt from "jsonwebtoken";
+import jwkToBuffer from "jwk-to-pem";
+
+declare global {
+  namespace Express {
+    // tslint:disable-next-line:no-empty-interface
+    interface Request {
+      user?: User;
+    }
+    interface User {}
+  }
+}
+
+export const verifyToken = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (req.isAuthenticated()) {
-    return next();
+  const authorization = req.get("Authorization");
+
+  if (!authorization) {
+    console.log("no token found");
+    return res.status(401).json({ message: "Unthorized" });
   }
-  res.status(401).json({ message: "Unauthorized" });
-};
 
-export const passportAuthenticate = (req: Request, res: Response) => {
-  // Redirect or respond with a success message upon successful authentication
-  res.json({ message: "Login successful" });
-};
+  const publicKeyBuffer = fs.readFileSync("jwks.json", "utf8");
+  const publicKeyJson = JSON.parse(publicKeyBuffer);
+  console.log("public key", publicKeyJson);
+  const decodedToken = jwt.decode(authorization, { complete: true });
+  if (!decodedToken) {
+    return res.status(401).json({ message: "Unthorized" });
+  }
+  const kid = decodedToken.header.kid;
+  console.log("kid from token", kid);
+  if (kid === undefined) {
+    console.log("Signing key not found for the JWT token.");
+    return res.status(401).json({ message: "Unthorized" });
+  }
+  const signingKey = publicKeyJson.keys.find((key: any) => key?.kid === kid);
+  console.log("signingKey==>", signingKey);
+  if (!signingKey) {
+    console.log("Signing key not found for the JWT token.");
+    return res.status(401).json({ message: "Unthorized" });
+  }
+  const pem = jwkToBuffer(signingKey);
+  try {
+    const verifiedToken = jwt.verify(authorization, pem, {
+      algorithms: ["RS256"],
+    }) as { email: string; email_verified: string; "cognito:username": string };
 
-export const validatedUser = (
-  username: string,
-  password: string,
-  done: (
-    error: any,
-    user?: Express.User | false,
-    options?: IVerifyOptions
-  ) => void
-) => {
-  const userPromise = prisma.user.findUnique({
-    where: {
-      email: username,
-    },
-  });
-  userPromise
-    .then((user) => {
-      if (user?.email === username && user?.password === password) {
-        return done(null, user);
-      }
-      return done(null, false);
-    })
-    .catch((err) => {
-      return done(err, false);
-    });
+    console.log(verifiedToken);
+    req.user = {
+      email: verifiedToken.email,
+      isEmailVerified: verifiedToken.email_verified,
+      username: verifiedToken["cognito:username"],
+    };
+    next();
+  } catch (err) {
+    res.status(500).json(err);
+  }
 };
